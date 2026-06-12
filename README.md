@@ -271,6 +271,6 @@ Added pairwise Cohen's kappa via `sklearn.metrics.cohen_kappa_score` across all 
 
 ## License
 
-© 2026 Mouli Sagar - for portfolio and educational use.
+© 2026 Mouli Sagar – All rights reserved.
 
 Built August 2025 – June 2026.
