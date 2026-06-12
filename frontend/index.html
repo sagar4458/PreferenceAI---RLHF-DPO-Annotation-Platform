@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PreferenceAI | RLHF Annotation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-light: #f4f7fc;
+            --card-light: #ffffff;
+            --text-light: #0f172a;
+            --border-light: #e2e8f0;
+            --accent: #2a5298;
+            --accent-hover: #1e3c72;
+            --success: #10b981;
+            --danger: #dc2626;
+            --warning: #eab308;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-light);
+            color: var(--text-light);
+            transition: background 0.3s, color 0.2s;
+            line-height: 1.5;
+        }
+
+        /* Dark mode variables */
+        body.dark {
+            --bg-light: #0f172a;
+            --card-light: #1e293b;
+            --text-light: #e2e8f0;
+            --border-light: #2d3a5e;
+            --accent: #00e5ff;
+            --accent-hover: #00c4db;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Login card */
+        .login-card {
+            background: var(--card-light);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 400px;
+            margin: 2rem auto;
+            box-shadow: 0 20px 35px -12px rgba(0,0,0,0.15);
+            border: 1px solid var(--border-light);
+            text-align: center;
+            backdrop-filter: blur(4px);
+            transition: transform 0.2s;
+        }
+        .login-card:hover {
+            transform: translateY(-4px);
+        }
+        .login-card input {
+            width: 100%;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border-light);
+            background: var(--card-light);
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 2rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        /* Dashboard */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .progress-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .progress-section {
+            background: #e2e8f0;
+            border-radius: 2rem;
+            height: 8px;
+            width: 200px;
+            overflow: hidden;
+        }
+        body.dark .progress-section {
+            background: #334155;
+        }
+        .progress-bar {
+            background: var(--accent);
+            width: 0%;
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .two-columns {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        .main-panel { flex: 2; min-width: 250px; }
+        .side-panel { flex: 1; min-width: 250px; }
+        .task-card, .side-card {
+            background: var(--card-light);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-light);
+            margin-bottom: 1.5rem;
+            transition: box-shadow 0.2s;
+        }
+        .task-card:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+        .prompt {
+            background: rgba(42,82,152,0.1);
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+            border-left: 4px solid var(--accent);
+        }
+        .response-card {
+            border: 1px solid var(--border-light);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.1s;
+            position: relative;
+        }
+        .response-card.selected {
+            border-color: var(--accent);
+            background: rgba(42,82,152,0.1);
+            box-shadow: 0 4px 12px rgba(42,82,152,0.2);
+        }
+        .response-card.selected::after {
+            content: "✓";
+            position: absolute;
+            right: 1rem;
+            top: 0.8rem;
+            font-size: 1.3rem;
+            color: var(--accent);
+            font-weight: bold;
+        }
+        .admin-card {
+            background: rgba(234,179,8,0.1);
+            border-left: 4px solid var(--warning);
+        }
+        .stats-table {
+            width: 100%;
+            font-size: 0.75rem;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+        }
+        .stats-table th, .stats-table td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .kappa-badge {
+            background: var(--accent);
+            color: white;
+            border-radius: 1rem;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+            display: inline-block;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e293b;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast.show { opacity: 1; }
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        /* Dark mode toggle */
+        .dark-toggle {
+            background: var(--card-light);
+            border: 1px solid var(--border-light);
+            border-radius: 2rem;
+            padding: 0.4rem 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+        }
+        .error { color: var(--danger); margin-top: 0.5rem; font-size: 0.85rem; }
+        hr { margin: 0.5rem 0; border-color: var(--border-light); }
+        @media (max-width: 700px) {
+            .container { padding: 1rem; }
+            .two-columns { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Login Section -->
+    <div id="loginSection">
+        <div class="login-card">
+            <i class="fas fa-brain" style="font-size: 2.5rem; color: var(--accent); margin-bottom: 0.5rem;"></i>
+            <h2>PreferenceAI</h2>
+            <p style="margin-bottom: 1rem;">Help train helpful, harmless AI</p>
+            <input type="text" id="loginUsername" placeholder="Username">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button id="doLoginBtn" class="btn">Login</button>
+            <div id="loginError" class="error"></div>
+        </div>
+    </div>
+
+    <!-- Dashboard (hidden until login) -->
+    <div id="dashboard" class="dashboard" style="display: none;">
+        <div class="dashboard-header">
+            <div><h2><i class="fas fa-tasks"></i> Annotation Dashboard</h2></div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="progress-wrapper">
+                    <span id="progressText">0 / 0 tasks</span>
+                    <div class="progress-section"><div id="progressFill" class="progress-bar"></div></div>
+                </div>
+                <div class="dark-toggle" id="darkModeToggle">
+                    <i class="fas fa-sun"></i> <span>Light</span>
+                </div>
+                <button id="logoutBtn" class="btn" style="background:#6c757d;"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+        <div class="two-columns">
+            <div class="main-panel">
+                <div class="task-card">
+                    <div class="prompt" id="promptText">Loading task...</div>
+                    <div id="responseA" class="response-card">Response A</div>
+                    <div id="responseB" class="response-card">Response B</div>
+                    <button id="submitBtn" class="btn btn-submit" disabled><i class="fas fa-check-circle"></i> Submit Choice</button>
+                    <div id="taskStatus" style="margin-top:0.5rem; font-size:0.8rem;"></div>
+                </div>
+            </div>
+            <div class="side-panel">
+                <div class="side-card">
+                    <h4><i class="fas fa-info-circle"></i> Instructions</h4>
+                    <p>Read the prompt. Choose the response that is <strong>more helpful, accurate, and safe</strong>.</p>
+                    <hr>
+                    <p><i class="fas fa-clock"></i> <span id="taskTimer">0</span> seconds spent</p>
+                </div>
+                <div id="adminPanel" style="display: none;">
+                    <div class="side-card admin-card">
+                        <h4><i class="fas fa-chart-line"></i> Admin Overview</h4>
+                        <div id="adminStats">Loading...</div>
+                        <button id="exportBtn" class="btn" style="background:var(--accent); margin-top:0.5rem;"><i class="fas fa-download"></i> Export RLHF Data</button>
+                        <div class="new-task-form" id="newTaskForm" style="display:none; margin-top:1rem;">
+                            <h5>➕ Add New Task</h5>
+                            <input type="text" id="taskPrompt" placeholder="Prompt" style="width:100%; padding:0.5rem; margin-bottom:0.5rem;">
+                            <textarea id="taskResponseA" rows="2" placeholder="Response A" style="width:100%; padding:0.5rem;"></textarea>
+                            <textarea id="taskResponseB" rows="2" placeholder="Response B" style="width:100%; padding:0.5rem;"></textarea>
+                            <button id="createTaskBtn" class="btn" style="background:var(--success);">Create Task</button>
+                        </div>
+                        <button id="showTaskFormBtn" class="btn" style="background:#6c757d; margin-top:0.5rem;"><i class="fas fa-plus"></i> Create New Task</button>
+                        <div class="csv-import-form" id="csvImportForm" style="display:none; margin-top:1rem;">
+                            <h5>📂 Bulk Import CSV</h5>
+                            <input type="file" id="csvFile" accept=".csv">
+                            <button id="importCsvBtn" class="btn" style="background:var(--accent);">Import Tasks</button>
+                            <p style="font-size:0.7rem;">Columns: prompt,response_a,response_b</p>
+                        </div>
+                        <button id="showCsvFormBtn" class="btn" style="background:#6c757d; margin-top:0.5rem;"><i class="fas fa-upload"></i> Import CSV</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <footer>Your preferences directly improve AI alignment. Every click counts.</footer>
+    </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+    // Dark mode toggle
+    const darkToggle = document.getElementById('darkModeToggle');
+    if (localStorage.getItem('preferenceAI_dark') === 'enabled') {
+        document.body.classList.add('dark');
+        darkToggle.innerHTML = '<i class="fas fa-moon"></i> <span>Dark</span>';
+    }
+    darkToggle.addEventListener('click', () => {
+        if (document.body.classList.contains('dark')) {
+            document.body.classList.remove('dark');
+            localStorage.setItem('preferenceAI_dark', 'disabled');
+            darkToggle.innerHTML = '<i class="fas fa-sun"></i> <span>Light</span>';
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem('preferenceAI_dark', 'enabled');
+            darkToggle.innerHTML = '<i class="fas fa-moon"></i> <span>Dark</span>';
+        }
+    });
+
+    // Helper functions (unchanged but modernised)
+    function getCookie(name) {
+        let value = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let c of cookies) {
+                c = c.trim();
+                if (c.startsWith(name + '=')) {
+                    value = decodeURIComponent(c.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return value;
+    }
+
+    async function ensureCSRF() {
+        await fetch('/api/csrf/', { credentials: 'include' });
+    }
+
+    async function authFetch(url, options = {}) {
+        const opts = { ...options, credentials: 'include' };
+        if (opts.method && opts.method !== 'GET') {
+            const token = getCookie('csrftoken');
+            if (!token) await ensureCSRF();
+            opts.headers = {
+                ...opts.headers,
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            };
+        }
+        const res = await fetch(url, opts);
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || res.statusText);
+        }
+        return res.json();
+    }
+
+    let currentAssignmentId = null, selectedResponse = null, startTime = null, timerInterval = null, currentUser = null;
+    // DOM elements (same as before, but we'll keep existing IDs)
+    const loginSection = document.getElementById('loginSection');
+    const dashboard = document.getElementById('dashboard');
+    const doLoginBtn = document.getElementById('doLoginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const loginError = document.getElementById('loginError');
+    const promptText = document.getElementById('promptText');
+    const responseA = document.getElementById('responseA');
+    const responseB = document.getElementById('responseB');
+    const submitBtn = document.getElementById('submitBtn');
+    const taskStatusDiv = document.getElementById('taskStatus');
+    const progressText = document.getElementById('progressText');
+    const progressFill = document.getElementById('progressFill');
+    const taskTimerSpan = document.getElementById('taskTimer');
+    const adminPanel = document.getElementById('adminPanel');
+    const adminStatsDiv = document.getElementById('adminStats');
+    const exportBtn = document.getElementById('exportBtn');
+    const newTaskForm = document.getElementById('newTaskForm');
+    const showTaskFormBtn = document.getElementById('showTaskFormBtn');
+    const createTaskBtn = document.getElementById('createTaskBtn');
+    const taskPromptInput = document.getElementById('taskPrompt');
+    const taskResponseAInput = document.getElementById('taskResponseA');
+    const taskResponseBInput = document.getElementById('taskResponseB');
+    const csvImportForm = document.getElementById('csvImportForm');
+    const showCsvFormBtn = document.getElementById('showCsvFormBtn');
+    const importCsvBtn = document.getElementById('importCsvBtn');
+    const csvFileInput = document.getElementById('csvFile');
+
+    function showToast(msg, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.background = isError ? '#dc2626' : '#10b981';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    async function login(username, password) {
+        try {
+            const data = await authFetch('/api/login/', { method: 'POST', body: JSON.stringify({ username, password }) });
+            if (data.error) throw new Error(data.error);
+            return true;
+        } catch (err) { showToast(err.message, true); return false; }
+    }
+
+    async function loadUser() {
+        try { const data = await authFetch('/api/me/'); currentUser = data; return data; } catch(e) { return null; }
+    }
+
+    async function logoutApi() { await authFetch('/api/logout/', { method: 'POST' }); }
+
+    async function updateProgress() {
+        try {
+            const stats = await authFetch('/api/stats/');
+            const total = stats.total_tasks;
+            const userStat = stats.annotators.find(a => a.id === currentUser.id);
+            const completed = userStat ? userStat.completed : 0;
+            progressText.innerText = `${completed} / ${total} tasks`;
+            progressFill.style.width = (completed / total) * 100 + '%';
+            if (currentUser.is_admin) {
+                adminPanel.style.display = 'block';
+                let html = `<table class="stats-table"><thead><tr><th>Task ID</th><th>Agreement</th><th>Avg Time (s)</th><th>Annotations</th></tr></thead><tbody>`;
+                stats.task_details.forEach(t => {
+                    html += `<tr><td>${t.task_id}</td><td>${t.agreement !== null ? t.agreement : '—'}</td><td>${t.avg_time !== null ? t.avg_time : '—'}</td><td>${t.annotation_count}</td></tr>`;
+                });
+                html += `</tbody></table>`;
+                if (stats.pairwise_kappa && stats.pairwise_kappa.length) {
+                    html += `<div style="margin-top:0.5rem;"><strong>Pairwise Kappa</strong><ul>`;
+                    stats.pairwise_kappa.forEach(k => { html += `<li>Annotator ${k.annotator1} & ${k.annotator2}: ${k.kappa}</li>`; });
+                    html += `</ul></div>`;
+                }
+                adminStatsDiv.innerHTML = html;
+            }
+        } catch(e) { console.warn(e); }
+    }
+
+    async function fetchNextTask() {
+        try {
+            const data = await authFetch('/api/next-task/');
+            if (data.message === "No tasks available") {
+                taskStatusDiv.innerText = "✅ No more tasks available.";
+                promptText.innerText = "🎉 All tasks completed!";
+                responseA.style.display = 'none';
+                responseB.style.display = 'none';
+                submitBtn.style.display = 'none';
+                if (timerInterval) clearInterval(timerInterval);
+                return;
+            }
+            responseA.style.display = 'block';
+            responseB.style.display = 'block';
+            submitBtn.style.display = 'flex';
+            currentAssignmentId = data.assignment_id;
+            const task = data.task;
+            promptText.innerText = task.data.prompt;
+            responseA.innerText = task.data.response_a;
+            responseB.innerText = task.data.response_b;
+            selectedResponse = null;
+            responseA.classList.remove('selected');
+            responseB.classList.remove('selected');
+            submitBtn.disabled = true;
+            if (timerInterval) clearInterval(timerInterval);
+            startTime = Date.now();
+            timerInterval = setInterval(() => { taskTimerSpan.innerText = Math.floor((Date.now() - startTime) / 1000); }, 1000);
+            taskStatusDiv.innerText = "";
+        } catch(err) { showToast("Error loading task: " + err.message, true); }
+    }
+
+    responseA.addEventListener('click', () => { selectedResponse = 'response_a'; responseA.classList.add('selected'); responseB.classList.remove('selected'); submitBtn.disabled = false; });
+    responseB.addEventListener('click', () => { selectedResponse = 'response_b'; responseB.classList.add('selected'); responseA.classList.remove('selected'); submitBtn.disabled = false; });
+    submitBtn.addEventListener('click', async () => {
+        if (!selectedResponse) return;
+        const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+        try {
+            await authFetch('/api/submit-annotation/', { method: 'POST', body: JSON.stringify({ assignment_id: currentAssignmentId, result: { chosen: selectedResponse }, time_spent: timeSpent }) });
+            showToast("Preference saved! Loading next...");
+            if (timerInterval) clearInterval(timerInterval);
+            await updateProgress();
+            await fetchNextTask();
+        } catch(err) { showToast("Submission failed: " + err.message, true); }
+    });
+
+    exportBtn?.addEventListener('click', async () => {
+        try { const data = await authFetch('/api/export/'); showToast(data.message || "Export triggered."); await updateProgress(); } catch(err) { showToast("Export failed", true); }
+    });
+    showTaskFormBtn?.addEventListener('click', () => { newTaskForm.style.display = newTaskForm.style.display === 'none' ? 'block' : 'none'; });
+    createTaskBtn?.addEventListener('click', async () => {
+        const prompt = taskPromptInput.value.trim(), a = taskResponseAInput.value.trim(), b = taskResponseBInput.value.trim();
+        if (!prompt || !a || !b) { showToast("All fields required", true); return; }
+        try {
+            await authFetch('/api/create-task/', { method: 'POST', body: JSON.stringify({ task_type: 'preference_ranking', data: { prompt, response_a: a, response_b: b }, status: 'pending' }) });
+            showToast("Task created");
+            taskPromptInput.value = ''; taskResponseAInput.value = ''; taskResponseBInput.value = '';
+            newTaskForm.style.display = 'none';
+            await updateProgress(); await fetchNextTask();
+        } catch(err) { showToast("Create failed", true); }
+    });
+    showCsvFormBtn?.addEventListener('click', () => { csvImportForm.style.display = csvImportForm.style.display === 'none' ? 'block' : 'none'; });
+    importCsvBtn?.addEventListener('click', async () => {
+        if (!csvFileInput.files.length) { showToast("Select CSV", true); return; }
+        const fd = new FormData(); fd.append('file', csvFileInput.files[0]);
+        try {
+            const res = await fetch('/api/import-csv/', { method: 'POST', credentials: 'include', headers: { 'X-CSRFToken': getCookie('csrftoken') }, body: fd });
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+            showToast(data.message || "Imported");
+            csvFileInput.value = ''; csvImportForm.style.display = 'none';
+            await updateProgress(); await fetchNextTask();
+        } catch(err) { showToast("Import failed", true); }
+    });
+    doLoginBtn.addEventListener('click', async () => {
+        const username = document.getElementById('loginUsername').value.trim(), password = document.getElementById('loginPassword').value;
+        if (!username || !password) { loginError.innerText = "Enter username and password"; return; }
+        loginError.innerText = "";
+        await ensureCSRF();
+        const ok = await login(username, password);
+        if (!ok) { loginError.innerText = "Invalid credentials"; return; }
+        const user = await loadUser();
+        if (!user) { loginError.innerText = "Login failed"; return; }
+        loginSection.style.display = 'none';
+        dashboard.style.display = 'block';
+        await updateProgress();
+        await fetchNextTask();
+    });
+    logoutBtn.addEventListener('click', async () => {
+        await logoutApi();
+        loginSection.style.display = 'block';
+        dashboard.style.display = 'none';
+        currentUser = null;
+        if (timerInterval) clearInterval(timerInterval);
+    });
+    async function checkSession() {
+        await ensureCSRF();
+        try {
+            const user = await loadUser();
+            if (user && user.id) {
+                currentUser = user;
+                loginSection.style.display = 'none';
+                dashboard.style.display = 'block';
+                await updateProgress();
+                await fetchNextTask();
+            }
+        } catch(e) {}
+    }
+    checkSession();
+</script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Database
+db.sqlite3
+*.sqlite3
+
+# Django
+*.log
+local_settings.py
+*.pot
+*.mo
+*.css.map
+*.js.map
+
+# Environment variables
+.env
+.env.local
+
+# Data exports (generated files – you may want to keep the folder but not contents)
+data/exports/*.jsonl
+data/exports/*.json
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Sensitive information – ensure SECRET_KEY is removed from settings.py
+# We'll handle that separately

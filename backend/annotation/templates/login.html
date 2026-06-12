@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PreferenceAI | RLHF Annotation Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            line-height: 1.5;
+        }
+        .container { max-width: 1280px; margin: 0 auto; padding: 2rem 1.5rem; }
+        .login-card {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            max-width: 400px;
+            margin: 2rem auto;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .login-card input {
+            width: 100%;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 0.75rem;
+            border: 1px solid #cbd5e1;
+        }
+        .btn {
+            background: #2a5298;
+            color: white;
+            border: none;
+            border-radius: 2rem;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .dashboard { display: none; }
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .progress-section {
+            background: #e2e8f0;
+            border-radius: 2rem;
+            height: 8px;
+            width: 200px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            background: #2a5298;
+            width: 0%;
+            height: 100%;
+            transition: width 0.3s;
+        }
+        .two-columns { display: flex; gap: 2rem; flex-wrap: wrap; }
+        .main-panel { flex: 2; min-width: 250px; }
+        .side-panel { flex: 1; min-width: 250px; }
+        .task-card {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+        }
+        .prompt {
+            background: #eef2ff;
+            padding: 1rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+        .response-card {
+            border: 1px solid #cbd5e1;
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            position: relative;
+        }
+        .response-card.selected {
+            border-color: #2a5298;
+            background: #eef2ff;
+            box-shadow: 0 4px 12px rgba(42,82,152,0.2);
+        }
+        .response-card.selected::after {
+            content: "✓";
+            position: absolute;
+            right: 1rem;
+            top: 0.8rem;
+            font-size: 1.3rem;
+            color: #2a5298;
+        }
+        .btn-submit { background: #10b981; width: 100%; justify-content: center; }
+        .admin-card { background: #fef9e3; border-radius: 1rem; padding: 1rem; margin-top: 1rem; border-left: 4px solid #eab308; }
+        .new-task-form, .csv-import-form { background: white; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1rem; margin-top: 1rem; }
+        .stats-table { width: 100%; font-size: 0.75rem; border-collapse: collapse; margin-top: 0.5rem; }
+        .stats-table th, .stats-table td { padding: 0.4rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #1e293b;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast.show { opacity: 1; }
+        footer { text-align: center; margin-top: 2rem; font-size: 0.75rem; color: #64748b; }
+        .error { color: #dc2626; margin-top: 0.5rem; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Login form -->
+    <div id="loginSection">
+        <div class="login-card">
+            <h2>PreferenceAI Login</h2>
+            <input type="text" id="loginUsername" placeholder="Username">
+            <input type="password" id="loginPassword" placeholder="Password">
+            <button id="doLoginBtn" class="btn">Login</button>
+            <div id="loginError" class="error"></div>
+        </div>
+    </div>
+
+    <!-- Dashboard (hidden until login) -->
+    <div id="dashboard" class="dashboard">
+        <div class="dashboard-header">
+            <div><h2><i class="fas fa-tasks"></i> Annotation Dashboard</h2></div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span id="progressText">0 / 0 tasks</span>
+                <div class="progress-section"><div id="progressFill" class="progress-bar"></div></div>
+                <button id="logoutBtn" class="btn" style="background:#6c757d;">Logout</button>
+            </div>
+        </div>
+        <div class="two-columns">
+            <div class="main-panel">
+                <div class="task-card">
+                    <div class="prompt" id="promptText">Loading task...</div>
+                    <div id="responseA" class="response-card">Response A</div>
+                    <div id="responseB" class="response-card">Response B</div>
+                    <button id="submitBtn" class="btn btn-submit" disabled>Submit Choice</button>
+                    <div id="taskStatus" style="margin-top:0.5rem; font-size:0.8rem;"></div>
+                </div>
+            </div>
+            <div class="side-panel">
+                <div class="task-card">
+                    <h4>Instructions</h4>
+                    <p>Read the prompt. Choose the response that is <strong>more helpful, accurate, and safe</strong>.</p>
+                    <hr>
+                    <p><i class="fas fa-clock"></i> <span id="taskTimer">0</span> seconds spent</p>
+                </div>
+                <div id="adminPanel" style="display: none;">
+                    <div class="task-card admin-card">
+                        <h4>Admin Overview</h4>
+                        <div id="adminStats">Loading...</div>
+                        <button id="exportBtn" class="btn" style="background:#2a5298; margin-top:0.5rem;">Export RLHF Data</button>
+                        <div class="new-task-form" id="newTaskForm" style="display:none;">
+                            <h5>➕ Add New Task</h5>
+                            <input type="text" id="taskPrompt" placeholder="Prompt">
+                            <textarea id="taskResponseA" rows="2" placeholder="Response A"></textarea>
+                            <textarea id="taskResponseB" rows="2" placeholder="Response B"></textarea>
+                            <button id="createTaskBtn" class="btn" style="background:#10b981;">Create Task</button>
+                        </div>
+                        <button id="showTaskFormBtn" class="btn" style="background:#6c757d;">Create New Task</button>
+                        <div class="csv-import-form" id="csvImportForm" style="display:none;">
+                            <h5>📂 Bulk Import CSV</h5>
+                            <input type="file" id="csvFile" accept=".csv">
+                            <button id="importCsvBtn" class="btn" style="background:#2a5298;">Import Tasks</button>
+                            <p style="font-size:0.7rem;">CSV must have columns: prompt,response_a,response_b</p>
+                        </div>
+                        <button id="showCsvFormBtn" class="btn" style="background:#6c757d;">Import CSV</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+    // Helper: get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Wrapper for authenticated fetch (adds CSRF header for POST/PUT/DELETE, reads token fresh each time)
+    async function authFetch(url, options = {}) {
+        const opts = { ...options, credentials: 'include' };
+        if (opts.method && opts.method !== 'GET') {
+            const csrfToken = getCookie('csrftoken');
+            opts.headers = {
+                ...opts.headers,
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
+            };
+        }
+        const res = await fetch(url, opts);
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || res.statusText);
+        }
+        return res.json();
+    }
+
+    // Global state
+    let currentAssignmentId = null;
+    let selectedResponse = null;
+    let startTime = null;
+    let timerInterval = null;
+    let currentUser = null;
+
+    // DOM elements
+    const loginSection = document.getElementById('loginSection');
+    const dashboard = document.getElementById('dashboard');
+    const doLoginBtn = document.getElementById('doLoginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const loginError = document.getElementById('loginError');
+    const promptText = document.getElementById('promptText');
+    const responseA = document.getElementById('responseA');
+    const responseB = document.getElementById('responseB');
+    const submitBtn = document.getElementById('submitBtn');
+    const taskStatusDiv = document.getElementById('taskStatus');
+    const progressText = document.getElementById('progressText');
+    const progressFill = document.getElementById('progressFill');
+    const taskTimerSpan = document.getElementById('taskTimer');
+    const adminPanel = document.getElementById('adminPanel');
+    const adminStatsDiv = document.getElementById('adminStats');
+    const exportBtn = document.getElementById('exportBtn');
+    const newTaskForm = document.getElementById('newTaskForm');
+    const showTaskFormBtn = document.getElementById('showTaskFormBtn');
+    const createTaskBtn = document.getElementById('createTaskBtn');
+    const taskPromptInput = document.getElementById('taskPrompt');
+    const taskResponseAInput = document.getElementById('taskResponseA');
+    const taskResponseBInput = document.getElementById('taskResponseB');
+    const csvImportForm = document.getElementById('csvImportForm');
+    const showCsvFormBtn = document.getElementById('showCsvFormBtn');
+    const importCsvBtn = document.getElementById('importCsvBtn');
+    const csvFileInput = document.getElementById('csvFile');
+
+    function showToast(msg, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.background = isError ? '#dc2626' : '#10b981';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    async function login(username, password) {
+        try {
+            const data = await authFetch('/api/login/', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
+            if (data.error) throw new Error(data.error);
+            return true;
+        } catch (err) {
+            showToast(err.message, true);
+            return false;
+        }
+    }
+
+    async function loadUser() {
+        try {
+            const data = await authFetch('/api/me/');
+            currentUser = data;
+            return data;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    async function logoutApi() {
+        await authFetch('/api/logout/', { method: 'POST' });
+    }
+
+    async function updateProgress() {
+        try {
+            const stats = await authFetch('/api/stats/');
+            const total = stats.total_tasks;
+            const userStat = stats.annotators.find(a => a.id === currentUser.id);
+            const completed = userStat ? userStat.completed : 0;
+            progressText.innerText = `${completed} / ${total} tasks`;
+            const percent = (completed / total) * 100;
+            progressFill.style.width = percent + '%';
+            if (currentUser.is_admin) {
+                adminPanel.style.display = 'block';
+                let adminHtml = `<table class="stats-table"><thead><tr><th>Task ID</th><th>Agreement</th><th>Avg Time (s)</th><th>Annotations</th></tr></thead><tbody>`;
+                (stats.task_details || []).forEach(t => {
+                    adminHtml += `<tr><td>${t.task_id}</td><td>${t.agreement !== null ? t.agreement : '—'}</td><td>${t.avg_time !== null ? t.avg_time : '—'}</td><td>${t.annotation_count}</td></tr>`;
+                });
+                adminHtml += `</tbody></table>`;
+                if (stats.pairwise_kappa && stats.pairwise_kappa.length) {
+                    adminHtml += `<div><strong>Pairwise Cohen's Kappa</strong><ul>`;
+                    stats.pairwise_kappa.forEach(k => {
+                        adminHtml += `<li>Annotator ${k.annotator1} & ${k.annotator2}: ${k.kappa}</li>`;
+                    });
+                    adminHtml += `</ul></div>`;
+                }
+                adminStatsDiv.innerHTML = adminHtml;
+            }
+        } catch(e) { console.warn(e); }
+    }
+
+    async function fetchNextTask() {
+        try {
+            const data = await authFetch('/api/next-task/');
+            if (data.message === "No tasks available") {
+                taskStatusDiv.innerText = "✅ No more tasks available.";
+                promptText.innerText = "🎉 All tasks completed!";
+                responseA.style.display = 'none';
+                responseB.style.display = 'none';
+                submitBtn.style.display = 'none';
+                if (timerInterval) clearInterval(timerInterval);
+                return;
+            }
+            responseA.style.display = 'block';
+            responseB.style.display = 'block';
+            submitBtn.style.display = 'flex';
+            currentAssignmentId = data.assignment_id;
+            const task = data.task;
+            promptText.innerText = task.data.prompt;
+            responseA.innerText = task.data.response_a;
+            responseB.innerText = task.data.response_b;
+            selectedResponse = null;
+            responseA.classList.remove('selected');
+            responseB.classList.remove('selected');
+            submitBtn.disabled = true;
+            if (timerInterval) clearInterval(timerInterval);
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                taskTimerSpan.innerText = elapsed;
+            }, 1000);
+            taskStatusDiv.innerText = "";
+        } catch (err) {
+            showToast("Error loading task: " + err.message, true);
+        }
+    }
+
+    responseA.addEventListener('click', () => {
+        selectedResponse = 'response_a';
+        responseA.classList.add('selected');
+        responseB.classList.remove('selected');
+        submitBtn.disabled = false;
+    });
+    responseB.addEventListener('click', () => {
+        selectedResponse = 'response_b';
+        responseB.classList.add('selected');
+        responseA.classList.remove('selected');
+        submitBtn.disabled = false;
+    });
+
+    submitBtn.addEventListener('click', async () => {
+        if (!selectedResponse) return;
+        const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+        const payload = { assignment_id: currentAssignmentId, result: { chosen: selectedResponse }, time_spent: timeSpent };
+        try {
+            await authFetch('/api/submit-annotation/', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            showToast("Preference saved! Loading next task...");
+            if (timerInterval) clearInterval(timerInterval);
+            await updateProgress();
+            await fetchNextTask();
+        } catch (err) {
+            showToast("Submission failed: " + err.message, true);
+        }
+    });
+
+    exportBtn?.addEventListener('click', async () => {
+        try {
+            const data = await authFetch('/api/export/');
+            showToast(data.message || "Export triggered.");
+            await updateProgress();
+        } catch (err) {
+            showToast("Export failed", true);
+        }
+    });
+
+    showTaskFormBtn?.addEventListener('click', () => {
+        newTaskForm.style.display = newTaskForm.style.display === 'none' ? 'block' : 'none';
+    });
+    createTaskBtn?.addEventListener('click', async () => {
+        const prompt = taskPromptInput.value.trim();
+        const response_a = taskResponseAInput.value.trim();
+        const response_b = taskResponseBInput.value.trim();
+        if (!prompt || !response_a || !response_b) { showToast("All fields required", true); return; }
+        try {
+            await authFetch('/api/create-task/', {
+                method: 'POST',
+                body: JSON.stringify({ task_type: 'preference_ranking', data: { prompt, response_a, response_b }, status: 'pending' })
+            });
+            showToast("Task created");
+            taskPromptInput.value = '';
+            taskResponseAInput.value = '';
+            taskResponseBInput.value = '';
+            newTaskForm.style.display = 'none';
+            await updateProgress();
+            await fetchNextTask();
+        } catch (err) { showToast("Create failed", true); }
+    });
+
+    showCsvFormBtn?.addEventListener('click', () => {
+        csvImportForm.style.display = csvImportForm.style.display === 'none' ? 'block' : 'none';
+    });
+    importCsvBtn?.addEventListener('click', async () => {
+        if (!csvFileInput.files.length) { showToast("Select a CSV file", true); return; }
+        const formData = new FormData();
+        formData.append('file', csvFileInput.files[0]);
+        try {
+            const csrfToken = getCookie('csrftoken');
+            const res = await fetch('/api/import-csv/', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const data = await res.json();
+            showToast(data.message || "Imported");
+            csvFileInput.value = '';
+            csvImportForm.style.display = 'none';
+            await updateProgress();
+            await fetchNextTask();
+        } catch (err) { showToast("Import failed", true); }
+    });
+
+    doLoginBtn.addEventListener('click', async () => {
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        if (!username || !password) { loginError.innerText = "Enter username and password"; return; }
+        loginError.innerText = "";
+        const ok = await login(username, password);
+        if (!ok) { loginError.innerText = "Invalid credentials"; return; }
+        const user = await loadUser();
+        if (!user) { loginError.innerText = "Login failed"; return; }
+        loginSection.style.display = 'none';
+        dashboard.style.display = 'block';
+        await updateProgress();
+        await fetchNextTask();
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+        await logoutApi();
+        loginSection.style.display = 'block';
+        dashboard.style.display = 'none';
+        currentUser = null;
+        if (timerInterval) clearInterval(timerInterval);
+    });
+
+    // On page load, check if already logged in
+    async function checkSession() {
+        try {
+            const user = await loadUser();
+            if (user && user.id) {
+                currentUser = user;
+                loginSection.style.display = 'none';
+                dashboard.style.display = 'block';
+                await updateProgress();
+                await fetchNextTask();
+            }
+        } catch(e) {
+            // Not logged in – stay on login page
+        }
+    }
+    checkSession();
+</script>
+</body>
+</html>
